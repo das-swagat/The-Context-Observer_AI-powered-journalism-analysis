@@ -1,7 +1,13 @@
 from flask import Flask, render_template, request, jsonify
 from analyzer_core import analyze_article
 
-app = Flask(__name__)
+import os
+
+app = Flask(
+    __name__,
+    template_folder=os.path.join(os.path.dirname(__file__), "templates"),
+    static_folder=os.path.join(os.path.dirname(__file__), "static")
+)
 
 @app.route('/')
 def index():
