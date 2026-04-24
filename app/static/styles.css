@@ -23,7 +23,7 @@ body {
     var(--paper);
   color: var(--ink);
   font-family: Georgia, "Times New Roman", serif;
-  cursor: none;
+  cursor: auto;
 }
 
 .container {
@@ -150,7 +150,7 @@ button {
   letter-spacing: 1px;
   text-transform: uppercase;
   box-shadow: 0 5px 14px rgba(95, 31, 24, 0.28);
-  cursor: none;
+  cursor: auto;
 }
 
 button:hover {
