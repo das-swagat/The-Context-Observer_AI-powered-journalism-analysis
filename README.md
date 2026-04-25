@@ -51,6 +51,56 @@ The goal is not to claim perfect bias detection, but to provide an explainable p
 
 ---
 
+## Using or Extending the Project
+
+You do not need to run anything locally to use the tool.  
+The main version is available through the hosted web application:
+
+https://ai-journalism-bias-analyzer.onrender.com
+
+However, if you want to modify or extend the project, you can fork or download the repository.
+
+### Fork the Repository
+
+1. Click **Fork** at the top right of this GitHub page.
+2. GitHub will create your own copy of the project.
+3. You can then edit, test, or deploy your own version.
+
+### Download the Project
+
+1. Click the green **Code** button.
+2. Select **Download ZIP**.
+3. Extract the folder and explore the files.
+
+---
+
+Limitations
+
+This is a research-oriented analysis tool, not a definitive bias detector.
+
+Known limitations:
+
+1. URL scraping may fail on protected or dynamic webpages.
+2. Pasted text may include noise if copied directly from full webpages.
+3. Sarcasm and deeper multi-sentence framing are only partially captured.
+4. Speaker detection is heuristic and may not always identify the correct speaker.
+5. Confidence values are estimated scores, not formally validated accuracy values.
+6. Bias/context labels should be interpreted as analysis cues, not final judgments.
+
+---
+
+Intended Use
+
+This tool is designed for:
+
+1. Exploring how sentiment and framing appear in news articles
+2. Comparing human interpretation with AI-generated analysis
+3. Studying bias-related signals in journalism
+4. emonstrating explainable NLP pipelines
+5. Supporting research discussions and prototypes
+
+---
+
 ## Repository Structure
 
 ```text
@@ -73,3 +123,4 @@ ai-journalism-bias-analyzer/
 ├── runtime.txt
 ├── render.yaml
 └── README.md
+
