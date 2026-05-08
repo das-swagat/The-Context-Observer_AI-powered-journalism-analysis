@@ -8,11 +8,21 @@ function destroyCharts() {
   });
 }
 
-function valueOrNA(value) {
+function escapeHtml(value) {
   if (value === undefined || value === null || value === "") {
     return "Not available";
   }
-  return value;
+
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function valueOrNA(value) {
+  return escapeHtml(value);
 }
 
 function renderSummary(summary, mbicStatus) {
@@ -138,71 +148,27 @@ function drawPieChart(canvasId, title, dataObject) {
   });
 }
 
-function initCursorEffect() {
-  const halo = document.createElement("div");
-  const dot = document.createElement("div");
-  halo.className = "cursor-halo";
-  dot.className = "cursor-dot";
-  document.body.appendChild(halo);
-  document.body.appendChild(dot);
-
-  const tails = [];
-  for (let i = 0; i < 10; i++) {
-    const t = document.createElement("div");
-    t.className = "cursor-tail";
-    document.body.appendChild(t);
-    tails.push({ el: t, x: 0, y: 0 });
-  }
-
-  let mouseX = window.innerWidth / 2;
-  let mouseY = window.innerHeight / 2;
-  let haloX = mouseX;
-  let haloY = mouseY;
-
-  document.addEventListener("mousemove", (e) => {
-    mouseX = e.clientX;
-    mouseY = e.clientY;
-    dot.style.left = `${mouseX}px`;
-    dot.style.top = `${mouseY}px`;
-  });
-
-  function animate() {
-    haloX += (mouseX - haloX) * 0.16;
-    haloY += (mouseY - haloY) * 0.16;
-
-    halo.style.left = `${haloX}px`;
-    halo.style.top = `${haloY}px`;
-
-    let prevX = haloX;
-    let prevY = haloY;
-
-    tails.forEach((tail, index) => {
-      tail.x += (prevX - tail.x) * (0.20 - index * 0.01);
-      tail.y += (prevY - tail.y) * (0.20 - index * 0.01);
-      tail.el.style.left = `${tail.x}px`;
-      tail.el.style.top = `${tail.y}px`;
-      tail.el.style.opacity = `${Math.max(0.08, 0.35 - index * 0.03)}`;
-      prevX = tail.x;
-      prevY = tail.y;
-    });
-
-    requestAnimationFrame(animate);
-  }
-
-  animate();
-}
-
 document.addEventListener("DOMContentLoaded", () => {
-  if (window.innerWidth > 850 && window.matchMedia("(pointer: fine)").matches) {
-    initCursorEffect();
-  }
-
   const analyzeBtn = document.getElementById("analyzeBtn");
   const textBox = document.getElementById("articleText");
   const urlBox = document.getElementById("articleUrl");
   const modeRadios = document.querySelectorAll('input[name="mode"]');
   const status = document.getElementById("status");
   const results = document.getElementById("results");
+
+  function looksLikeUrl(value) {
+    const v = value.trim().toLowerCase();
+    return (
+      v.startsWith("http://") ||
+      v.startsWith("https://") ||
+      v.startsWith("www.")
+    );
+  }
+
+  function looksLikeLongText(value) {
+    const v = value.trim();
+    return v.length > 80 && v.split(/\s+/).length > 12;
+  }
 
   function updateInputMode() {
     const mode = document.querySelector('input[name="mode"]:checked').value;
@@ -240,23 +206,47 @@ document.addEventListener("DOMContentLoaded", () => {
     let payload;
 
     if (mode === "url") {
-      if (!articleUrl.trim()) {
+      const cleanUrl = articleUrl.trim();
+
+      if (!cleanUrl) {
         status.textContent = "Please paste a URL first.";
+        return;
+      }
+
+      if (looksLikeLongText(cleanUrl) && !looksLikeUrl(cleanUrl)) {
+        status.textContent =
+          "This looks like article text. Please select Paste article text instead.";
+        return;
+      }
+
+      if (!looksLikeUrl(cleanUrl)) {
+        status.textContent =
+          "Please enter a full article URL beginning with http:// or https://.";
         return;
       }
 
       payload = {
         article_text: "",
-        article_url: articleUrl.trim()
+        article_url: cleanUrl.startsWith("www.")
+          ? "https://" + cleanUrl
+          : cleanUrl
       };
     } else {
-      if (!articleText.trim()) {
+      const cleanText = articleText.trim();
+
+      if (!cleanText) {
         status.textContent = "Please paste article text first.";
         return;
       }
 
+      if (looksLikeUrl(cleanText) && cleanText.split(/\s+/).length <= 3) {
+        status.textContent =
+          "This looks like a URL. Please select Use article URL instead.";
+        return;
+      }
+
       payload = {
-        article_text: articleText.trim(),
+        article_text: cleanText,
         article_url: ""
       };
     }
@@ -282,34 +272,34 @@ document.addEventListener("DOMContentLoaded", () => {
 
       renderCards("speakers", data.speakers || [], (row) => `
         <div class="result-card">
-          <h4>${row.speaker || "Unclear / quoted speaker"}</h4>
-          <p>${row.sentence}</p>
-          <p><b>Sentiment:</b> ${row.sentiment_label} |
-          <b>Bias/Context:</b> ${row.bias_label} / ${row.context_adjusted_label}</p>
-          <p><b>Emotion:</b> ${row["emotion_intensity_%"]}% |
-          <b>Confidence:</b> ${row["analysis_confidence_%"]}%</p>
-          <p><b>Matched cues:</b> ${row.matched_cues || "None"}</p>
+          <h4>${valueOrNA(row.speaker || "Unclear / quoted speaker")}</h4>
+          <p>${valueOrNA(row.sentence)}</p>
+          <p><b>Sentiment:</b> ${valueOrNA(row.sentiment_label)} |
+          <b>Bias/Context:</b> ${valueOrNA(row.bias_label)} / ${valueOrNA(row.context_adjusted_label)}</p>
+          <p><b>Emotion:</b> ${valueOrNA(row["emotion_intensity_%"])}% |
+          <b>Confidence:</b> ${valueOrNA(row["analysis_confidence_%"])}%</p>
+          <p><b>Matched cues:</b> ${valueOrNA(row.matched_cues || "None")}</p>
         </div>
       `);
 
       renderCards("flagged", data.flagged_sentences || [], (row) => `
         <div class="result-card">
-          <h4>${row.bias_label}</h4>
-          <p>${row.sentence}</p>
-          <p><b>Context-adjusted:</b> ${row.context_adjusted_label} |
-          <b>Severity:</b> ${row.severity_score}</p>
-          <p><b>Emotion:</b> ${row["emotion_intensity_%"]}% |
-          <b>Confidence:</b> ${row["analysis_confidence_%"]}%</p>
-          <p><b>Matched cues:</b> ${row.matched_cues || "None"}</p>
+          <h4>${valueOrNA(row.bias_label)}</h4>
+          <p>${valueOrNA(row.sentence)}</p>
+          <p><b>Context-adjusted:</b> ${valueOrNA(row.context_adjusted_label)} |
+          <b>Severity:</b> ${valueOrNA(row.severity_score)}</p>
+          <p><b>Emotion:</b> ${valueOrNA(row["emotion_intensity_%"])}% |
+          <b>Confidence:</b> ${valueOrNA(row["analysis_confidence_%"])}%</p>
+          <p><b>Matched cues:</b> ${valueOrNA(row.matched_cues || "None")}</p>
         </div>
       `);
 
       renderCards("negative", data.top_negative_sentences || [], (row) => `
         <div class="result-card">
-          <p>${row.sentence}</p>
-          <p><b>VADER:</b> ${row.vader_compound} |
-          <b>Bias/Context:</b> ${row.bias_label} / ${row.context_adjusted_label} |
-          <b>Severity:</b> ${row.severity_score}</p>
+          <p>${valueOrNA(row.sentence)}</p>
+          <p><b>VADER:</b> ${valueOrNA(row.vader_compound)} |
+          <b>Bias/Context:</b> ${valueOrNA(row.bias_label)} / ${valueOrNA(row.context_adjusted_label)} |
+          <b>Severity:</b> ${valueOrNA(row.severity_score)}</p>
         </div>
       `);
 
